@@ -1,0 +1,63 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+def load_excel_file():
+    file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx *.xls")], initialdir="C:/yakshith/aiml/")
+    if file_path:
+        display_stock_data(file_path)
+def display_stock_data(file_path):
+    try:
+        data = pd.read_excel(file_path)
+        required_columns = ['Symbol', 'Open', 'High', 'Low', 'LTP', 'Chng', '% Chng', 'Volume (lacs)']
+        if not all(col in data.columns for col in required_columns):
+            messagebox.showerror("Error", f"The selected file does not contain the required columns: {required_columns}")
+            return
+        numeric_columns = ['Open', 'High', 'Low', 'LTP', 'Chng', '% Chng', 'Volume (lacs)']
+        for col in numeric_columns:
+            if data[col].dtype != 'float64' and data[col].dtype != 'int64':
+                data[col] = pd.to_numeric(data[col], errors='coerce')
+        
+        clear_data()
+        fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 8))
+        
+        axes[0].plot(data['Symbol'], data['Open'], marker='o', linestyle='-', color='green', label='Open')
+        axes[0].plot(data['Symbol'], data['High'], marker='o', linestyle='-', color='red', label='High')
+        axes[0].plot(data['Symbol'], data['Low'], marker='o', linestyle='-', color='purple', label='Low')
+        axes[0].plot(data['Symbol'], data['LTP'], marker='o', linestyle='-', color='blue', label='LTP')
+        axes[0].set_title('Stock Prices')
+        axes[0].set_xlabel('Symbol')
+        axes[0].set_ylabel('Price')
+        axes[0].tick_params(axis='x', rotation=90)
+        axes[0].legend()
+
+        axes[1].bar(data['Symbol'], data['Volume (lacs)'], color='gray', label='Volume')
+        axes[1].set_title('Volume')
+        axes[1].set_xlabel('Symbol')
+        axes[1].set_ylabel('Volume (lacs)')
+        axes[1].tick_params(axis='x', rotation=90)
+        axes[1].legend()
+        canvas = FigureCanvasTkAgg(fig, master=scrollable_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        
+        display_text = f"Stock Data:\n\n{data.head()}"
+        messagebox.showinfo("Stock Data", display_text)
+        
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to load or plot data: {str(e)}")
+def clear_data():
+    for widget in scrollable_frame.winfo_children():
+        widget.destroy()
+root = tk.Tk()
+root.title("Stock Data Viewer")
+scrollbar = tk.Scrollbar(root)
+scrollbar.pack(side='right', fill='y')
+
+scrollable_frame = tk.Frame(root)
+scrollable_frame.pack(fill='both', expand=True)
+load_button = tk.Button(root, text="Load Excel File", command=load_excel_file)
+load_button.pack(pady=10)
+
+root.mainloop()
